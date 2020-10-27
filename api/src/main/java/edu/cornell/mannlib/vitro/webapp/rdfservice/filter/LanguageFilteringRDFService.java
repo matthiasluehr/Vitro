@@ -192,8 +192,17 @@ public class LanguageFilteringRDFService implements RDFService {
             protected void endProcessing() {
                 chainStartProcessing();
 
+                // Z0001
+                long startTime = System.currentTimeMillis();
+                long duration = 0;
+
                 for (String var : vars) {
+                    // Z0002
+                    long st0 = System.currentTimeMillis();
+                    log.info(solnList.size() + " elements."); // e. g. 1000 publications, 4 multilanguage lables --> 4000 iterations
                     for (int i = 0; i < solnList.size(); i++) {
+                        // Z0003
+                        long st1 = System.currentTimeMillis();
                         QuerySolution s = solnList.get(i);
                         if (s == null) {
                             continue;
@@ -204,6 +213,8 @@ public class LanguageFilteringRDFService implements RDFService {
                         }
                         List<RowIndexedLiteral> candidatesForRemoval =
                                 new ArrayList<RowIndexedLiteral>();
+                        // Z0004: that part is taking most of the time of the whole iteration
+                        long st2 = System.currentTimeMillis();
                         candidatesForRemoval.add(new RowIndexedLiteral(node.asLiteral(), i));
                         for (int j = i + 1; j < solnList.size(); j++) {
                             QuerySolution t = solnList.get(j);
@@ -215,6 +226,8 @@ public class LanguageFilteringRDFService implements RDFService {
                                         new RowIndexedLiteral(t.getLiteral(var), j));
                             }
                         }
+                        long dt2 = System.currentTimeMillis() - st2;
+                        log.info("Z0004: " + dt2 + " milliseconds.");
                         if (candidatesForRemoval.size() == 1) {
                             continue;
                         }
@@ -223,6 +236,8 @@ public class LanguageFilteringRDFService implements RDFService {
                         Iterator<RowIndexedLiteral> candIt = candidatesForRemoval.iterator();
                         String langRegister = null;
                         boolean chuckRemaining = false;
+                        // Z0005: - always 0 millis?
+                        st2 = System.currentTimeMillis();
                         while (candIt.hasNext()) {
                             RowIndexedLiteral rlit = candIt.next();
                             if (chuckRemaining) {
@@ -234,8 +249,18 @@ public class LanguageFilteringRDFService implements RDFService {
                                 solnList.set(rlit.getIndex(), null);
                             }
                         }
+                        dt2 = System.currentTimeMillis() - st2;
+                        log.info("Z0005: " + dt2 + " milliseconds.");
+                        long dt1 = System.currentTimeMillis() - st1;
+                        log.info("Z0003: " + dt1 + " milliseconds.");
                     }
+                    long dt0 = System.currentTimeMillis() - st0;
+                    log.info("Z0002: " + dt0 + " milliseconds.");
                 }
+                
+                // stop measuring the time
+                long overall = System.currentTimeMillis() - startTime;
+                log.info("Z0001: " + overall + ".");
 
                 for (QuerySolution soln : solnList) {
                     if (soln != null) {
